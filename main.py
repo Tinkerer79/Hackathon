@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 import httpx
 from datetime import datetime
+import os
 
 app = FastAPI(title="🌍 India Disaster Prediction API")
 
@@ -126,4 +127,5 @@ async def get_all():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
