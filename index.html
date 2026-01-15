@@ -1,69 +1,605 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>🌍 India Disaster Prediction</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌍 India Disaster Prediction Dashboard</title>
     <style>
-        body { font-family: Arial; margin: 20px; }
-        select { padding: 10px; font-size: 16px; }
-        .card { border-left: 5px solid #FF4500; padding: 20px; margin: 20px 0; }
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 30px; }
-        .box { padding: 15px; color: white; text-align: center; border-radius: 8px; cursor: pointer; }
-    </style>
-</head>
-<body>
-    <h1>🌍 India Disaster Prediction</h1>
-    
-    <select id="region" onchange="updatePrediction()">
-        <option>Bihar</option>
-        <option>Kerala</option>
-        <option>Maharashtra</option>
-        <option>Andhra Pradesh</option>
-    </select>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    <div id="card" class="card"></div>
-    <div id="grid" class="grid"></div>
+        :root {
+            --color-bg-dark: #0f172a;
+            --color-bg-darker: #020617;
+            --color-surface: #1e293b;
+            --color-text-primary: #f1f5f9;
+            --color-text-secondary: #cbd5e1;
+            --color-primary: #38bdf8;
+            --color-success: #16a34a;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+        }
 
-    <script>
-        async function fetchPredictions() {
-            const res = await fetch('http://localhost:8000/all');
-            const data = await res.json();
-            
-            // Show all regions
-            const grid = document.getElementById('grid');
-            grid.innerHTML = '';
-            for (const [region, pred] of Object.entries(data.predictions)) {
-                const level = pred.risk_level || 'LOW';
-                const colors = {'EXTREME': '#8B0000', 'HIGH': '#FF4500', 'MEDIUM': '#FFD700', 'LOW': '#00AA00'};
-                const box = document.createElement('div');
-                box.className = 'box';
-                box.style.backgroundColor = colors[level];
-                box.textContent = region + '\n' + level;
-                box.onclick = () => { document.getElementById('region').value = region; updatePrediction(); };
-                grid.appendChild(box);
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+            color: var(--color-text-primary);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 0;
+            border-bottom: 2px solid rgba(56, 189, 248, 0.2);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: var(--color-primary);
+        }
+
+        .tagline {
+            font-size: 1.1rem;
+            color: var(--color-text-secondary);
+        }
+
+        .control-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: var(--color-surface);
+            border-radius: 12px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--color-primary);
+            font-size: 0.95rem;
+        }
+
+        select, button {
+            padding: 12px 16px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            background: var(--color-bg-dark);
+            color: var(--color-text-primary);
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        select:hover {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+        }
+
+        button {
+            background: var(--color-primary);
+            color: white;
+            font-weight: 600;
+            border: none;
+        }
+
+        button:hover {
+            background: #0ea5e9;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(56, 189, 248, 0.3);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .prediction-card {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 2px solid rgba(56, 189, 248, 0.2);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .region-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 20px;
+        }
+
+        .disaster-type {
+            font-size: 1.1rem;
+            color: var(--color-text-secondary);
+            margin-bottom: 30px;
+        }
+
+        /* Risk Gauge */
+        .risk-gauge-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .risk-gauge {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 700;
+            color: white;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            margin-bottom: 15px;
+        }
+
+        .risk-gauge.low {
+            background: conic-gradient(#16a34a 0deg 90deg, #1e293b 90deg);
+        }
+
+        .risk-gauge.moderate {
+            background: conic-gradient(#f59e0b 0deg 135deg, #1e293b 135deg);
+        }
+
+        .risk-gauge.high {
+            background: conic-gradient(#f97316 0deg 225deg, #1e293b 225deg);
+        }
+
+        .risk-gauge.critical {
+            background: conic-gradient(#ef4444 0deg 315deg, #1e293b 315deg);
+        }
+
+        .risk-level {
+            font-size: 1.3rem;
+            font-weight: 700;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .risk-level.LOW {
+            background: rgba(22, 163, 74, 0.2);
+            color: #16a34a;
+            border: 2px solid #16a34a;
+        }
+
+        .risk-level.MODERATE {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            border: 2px solid #f59e0b;
+        }
+
+        .risk-level.HIGH {
+            background: rgba(249, 115, 22, 0.2);
+            color: #f97316;
+            border: 2px solid #f97316;
+        }
+
+        .risk-level.CRITICAL {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 2px solid #ef4444;
+        }
+
+        .weather-data {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 12px;
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .weather-item {
+            text-align: center;
+        }
+
+        .weather-label {
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .weather-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        /* Recommendations */
+        .recommendations {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 12px;
+            padding: 25px;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .recommendations-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 20px;
+        }
+
+        .recommendation-list {
+            list-style: none;
+        }
+
+        .recommendation-list li {
+            padding: 12px;
+            margin-bottom: 10px;
+            background: rgba(56, 189, 248, 0.1);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            border-left: 3px solid var(--color-primary);
+        }
+
+        /* Regional Overview */
+        .regional-overview {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 2px solid rgba(56, 189, 248, 0.2);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .overview-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 25px;
+        }
+
+        .region-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .region-item-name {
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .region-item-risk {
+            font-size: 1.2rem;
+            font-weight: 700;
+            padding: 8px 16px;
+            border-radius: 6px;
+            margin: 0 15px;
+        }
+
+        .region-item-risk.low {
+            background: rgba(22, 163, 74, 0.2);
+            color: #16a34a;
+        }
+
+        .region-item-risk.moderate {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .region-item-risk.high {
+            background: rgba(249, 115, 22, 0.2);
+            color: #f97316;
+        }
+
+        .region-item-risk.critical {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--color-text-secondary);
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 2px solid #ef4444;
+            color: #fca5a5;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .timestamp {
+            text-align: center;
+            color: var(--color-text-muted);
+            font-size: 0.85rem;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .control-panel {
+                grid-template-columns: 1fr 1fr;
             }
         }
 
-        async function updatePrediction() {
-            const region = document.getElementById('region').value;
-            const res = await fetch(`http://localhost:8000/predict/${region}`);
-            const data = await res.json();
-            const pred = data.prediction;
-            
-            const colors = {'EXTREME': '#8B0000', 'HIGH': '#FF4500', 'MEDIUM': '#FFD700', 'LOW': '#00AA00'};
-            document.getElementById('card').innerHTML = `
-                <h2>${region}</h2>
-                <p><strong>Risk:</strong> <span style="color: ${colors[pred.risk_level]}">${pred.risk_level}</span></p>
-                <p><strong>Primary:</strong> ${pred.primary_disaster}</p>
-                <p><strong>Flood Risk:</strong> ${(pred.flood_risk*100).toFixed(0)}%</p>
-                <p><strong>Heat Risk:</strong> ${(pred.heat_risk*100).toFixed(0)}%</p>
-                <p><strong>Rainfall (72h):</strong> ${pred.rainfall_72h_mm}mm</p>
-                <p><strong>Max Temp:</strong> ${pred.max_temperature}°C</p>
-                <p><strong>Alert:</strong> ${pred.alert}</p>
-            `;
+        @media (max-width: 768px) {
+            .control-panel {
+                grid-template-columns: 1fr;
+            }
+
+            .weather-data {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌍 India Disaster Prediction Dashboard</h1>
+            <p class="tagline">Real-time Risk Assessment & Safety Recommendations</p>
+        </header>
+
+        <div class="control-panel">
+            <div class="control-group">
+                <label for="region-select">📍 Select Region</label>
+                <select id="region-select">
+                    <option value="Manipur">Manipur</option>
+                    <option value="Assam">Assam</option>
+                    <option value="Kerala">Kerala</option>
+                    <option value="Uttarakhand">Uttarakhand</option>
+                    <option value="Bihar">Bihar</option>
+                    <option value="Rajasthan">Rajasthan</option>
+                    <option value="Maharashtra">Maharashtra</option>
+                    <option value="Karnataka">Karnataka</option>
+                    <option value="Tamil Nadu">Tamil Nadu</option>
+                    <option value="West Bengal">West Bengal</option>
+                    <option value="Odisha">Odisha</option>
+                    <option value="Gujarat">Gujarat</option>
+                    <option value="Telangana">Telangana</option>
+                    <option value="Andhra Pradesh">Andhra Pradesh</option>
+                    <option value="Punjab">Punjab</option>
+                    <option value="Haryana">Haryana</option>
+                    <option value="Delhi">Delhi</option>
+                    <option value="Uttar Pradesh">Uttar Pradesh</option>
+                    <option value="Jharkhand">Jharkhand</option>
+                    <option value="Chhattisgarh">Chhattisgarh</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="disaster-select">⚡ Disaster Type</label>
+                <select id="disaster-select">
+                    <option value="flood">🌊 Flood</option>
+                    <option value="heatwave">🔥 Heatwave</option>
+                    <option value="earthquake">🪨 Earthquake</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>&nbsp;</label>
+                <button onclick="fetchPrediction()">📊 Get Prediction</button>
+            </div>
+        </div>
+
+        <div id="error-container"></div>
+
+        <div class="main-grid">
+            <!-- Prediction Card -->
+            <div class="prediction-card">
+                <div class="region-name" id="region-name">Manipur</div>
+                <div class="disaster-type" id="disaster-type">Flood Risk Assessment</div>
+
+                <div class="risk-gauge-container">
+                    <div class="risk-gauge low" id="risk-gauge">
+                        <span id="risk-percent">--</span>
+                    </div>
+                    <div class="risk-level LOW" id="risk-level">LOW RISK</div>
+                </div>
+
+                <div class="weather-data">
+                    <div class="weather-item">
+                        <div class="weather-label">🌡️ Temperature</div>
+                        <div class="weather-value" id="temp">--°C</div>
+                    </div>
+                    <div class="weather-item">
+                        <div class="weather-label">💧 Humidity</div>
+                        <div class="weather-value" id="humidity">--%</div>
+                    </div>
+                    <div class="weather-item">
+                        <div class="weather-label">🌧️ Rainfall</div>
+                        <div class="weather-value" id="rainfall">--mm</div>
+                    </div>
+                </div>
+
+                <div style="padding: 15px; background: rgba(56, 189, 248, 0.1); border-radius: 8px; border-left: 3px solid var(--color-primary);">
+                    <strong style="color: var(--color-primary);">📊 Confidence Score:</strong>
+                    <div style="margin-top: 8px; color: var(--color-text-secondary);" id="confidence">Loading...</div>
+                </div>
+
+                <div class="timestamp" id="timestamp"></div>
+            </div>
+
+            <!-- Recommendations Card -->
+            <div class="recommendations">
+                <div class="recommendations-title">✅ What You Should Do</div>
+                <ul class="recommendation-list" id="recommendations-list">
+                    <li>Loading recommendations...</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Regional Overview -->
+        <div class="regional-overview">
+            <div class="overview-title">📈 Top 5 Highest Risk Regions</div>
+            <div id="region-overview" style="min-height: 200px;">
+                <div class="loading">Fetching data...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "https://your-api-url.railway.app"; // Change to your Railway URL
+
+        async function fetchPrediction() {
+            const region = document.getElementById("region-select").value;
+            const disasterType = document.getElementById("disaster-select").value;
+            const errorContainer = document.getElementById("error-container");
+
+            errorContainer.innerHTML = '';
+
+            try {
+                const response = await fetch(
+                    `${API_BASE}/predict/${region}?disaster_type=${disasterType}`
+                );
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                updateDashboard(data);
+                fetchTopRegions(disasterType);
+            } catch (error) {
+                console.error("Fetch error:", error);
+                errorContainer.innerHTML = `
+                    <div class="error">
+                        ⚠️ Unable to fetch data. Make sure your API is running at: ${API_BASE}
+                        <br><small>Error: ${error.message}</small>
+                    </div>
+                `;
+                // Show demo data
+                showDemoData();
+            }
         }
 
-        fetchPredictions();
-        setInterval(fetchPredictions, 300000);
+        function updateDashboard(data) {
+            // Update region info
+            document.getElementById("region-name").textContent = data.region;
+            document.getElementById("disaster-type").textContent = `${data.disaster_type} Risk Assessment`;
+
+            // Update risk gauge
+            const riskPercent = data.risk_percentage;
+            const riskLevel = data.risk_level;
+            const riskGauge = document.getElementById("risk-gauge");
+            const riskLevelEl = document.getElementById("risk-level");
+
+            riskGauge.textContent = `${Math.round(riskPercent)}%`;
+            riskGauge.className = `risk-gauge ${riskLevel.toLowerCase()}`;
+            riskLevelEl.textContent = `${riskLevel} RISK`;
+            riskLevelEl.className = `risk-level ${riskLevel}`;
+
+            // Update weather data
+            document.getElementById("temp").textContent = `${data.temperature}°C`;
+            document.getElementById("humidity").textContent = `${data.humidity}%`;
+            document.getElementById("rainfall").textContent = `${data.rainfall}mm`;
+
+            // Update confidence
+            document.getElementById("confidence").textContent = 
+                `${(data.confidence * 100).toFixed(1)}% confidence in this prediction`;
+
+            // Update recommendations
+            const recommendationsList = document.getElementById("recommendations-list");
+            recommendationsList.innerHTML = data.recommendations
+                .map(rec => `<li>${rec}</li>`)
+                .join("");
+
+            // Update timestamp
+            const timestamp = new Date(data.timestamp).toLocaleString("en-IN", {
+                timeZone: "Asia/Kolkata"
+            });
+            document.getElementById("timestamp").textContent = `Last updated: ${timestamp}`;
+        }
+
+        async function fetchTopRegions(disasterType) {
+            try {
+                const response = await fetch(`${API_BASE}/all?disaster_type=${disasterType}`);
+                if (!response.ok) throw new Error("Failed to fetch regions");
+
+                const predictions = await response.json();
+                const topRegions = predictions.slice(0, 5);
+
+                const overviewHTML = topRegions.map(pred => {
+                    const riskClass = pred.risk_level.toLowerCase();
+                    return `
+                        <div class="region-item">
+                            <span class="region-item-name">${pred.region}</span>
+                            <div class="region-item-risk ${riskClass}">${pred.risk_percentage}%</div>
+                            <span style="color: var(--color-text-secondary); font-size: 0.9rem;">
+                                ${pred.risk_level}
+                            </span>
+                        </div>
+                    `;
+                }).join("");
+
+                document.getElementById("region-overview").innerHTML = overviewHTML;
+            } catch (error) {
+                console.error("Error fetching regions:", error);
+            }
+        }
+
+        function showDemoData() {
+            const demoData = {
+                region: "Manipur",
+                disaster_type: "FLOOD",
+                risk_percentage: 68.5,
+                risk_level: "HIGH",
+                confidence: 0.847,
+                temperature: 28.5,
+                humidity: 75,
+                rainfall: 45.2,
+                timestamp: new Date().toISOString(),
+                recommendations: [
+                    "⚠️ Prepare evacuation plan with family",
+                    "⚠️ Stock food, water, medicines for 3 days",
+                    "⚠️ Keep documents in waterproof bags",
+                    "⚠️ Monitor rainfall intensity hourly",
+                    "⚠️ Avoid travelling to flood-prone areas"
+                ]
+            };
+            updateDashboard(demoData);
+        }
+
+        // Load initial prediction on page load
+        window.addEventListener("load", () => {
+            fetchPrediction();
+        });
     </script>
 </body>
 </html>
