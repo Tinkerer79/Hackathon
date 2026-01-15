@@ -1,9 +1,19 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import httpx
 from datetime import datetime
 import os
 
 app = FastAPI(title="🌍 India Disaster Prediction API")
+
+# Enable CORS for all origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 REGIONS = {
     "Andhra Pradesh": {"lat": 15.9129, "lon": 79.7400},
